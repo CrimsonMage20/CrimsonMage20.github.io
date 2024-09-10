@@ -75,7 +75,6 @@
                             <th><input type="text" placeholder="Search Start date"></th>
                             <th><input type="text" placeholder="Search Salary"></th>
                             <th><input type="text" placeholder="Search Nationality"></th>
-                            <!-- New Input Field for Nationality -->
                         </tr>
                     </tfoot>
                 </table>
@@ -116,7 +115,6 @@
                             <th><input type="text" placeholder="Search Start date"></th>
                             <th><input type="text" placeholder="Search Salary"></th>
                             <th><input type="text" placeholder="Search Nationality"></th>
-                            <!-- New Input Field for Nationality -->
                         </tr>
                     </tfoot>
                 </table>
@@ -149,8 +147,20 @@
                     "Sydney": "Australian",
                     "San Francisco": "American",
                     "Edinburgh": "Scottish",
-                    "Singapore": "Singaporean" // Added Singapore
+                    "Singapore": "Singaporean"
                 };
+
+                // Extend DataTables search for custom filtering of nationality column
+                $.fn.dataTable.ext.search.push(function (settings, data, dataIndex) {
+                    var nationalitySearch = $('#example1 tfoot input[placeholder="Search Nationality"]').val().toLowerCase();
+                    var office = data[2]; // Get office location from data
+                    var nationality = officeToNationality[office] || 'Unknown';
+
+                    if (!nationalitySearch || nationality.toLowerCase().includes(nationalitySearch)) {
+                        return true;
+                    }
+                    return false;
+                });
 
                 var table = $(tableId).DataTable({
                     ajax: 'arrays.txt',
@@ -159,12 +169,11 @@
                     dom: '<"top"p>rt<"bottom"l<"info"i>><"clear">',  // Pagination at top, info at bottom
                     language: {
                         lengthMenu: "Show _MENU_ entries",
-                        info: "Showing _START_ to _END_ of _TOTAL_ entries"  // Displaying the page info at the bottom
+                        info: "Showing _START_ to _END_ of _TOTAL_ entries"
                     },
                     select: {
                         style: 'single'
                     },
-                    // Add columns with the custom nationality data
                     columns: [
                         { data: 0 },
                         { data: 1 },
@@ -172,29 +181,25 @@
                         { data: 3 },
                         { data: 4 },
                         { data: 5 },
-                        { data: 6 }  // Nationality column
-                    ],
-                    // Add a nationality column to the data based on the office
-                    createdRow: function (row, data, dataIndex) {
-                        var office = data[2];  // Office is in the 3rd column (index 2)
-                        var nationality = officeToNationality[office] || 'Unknown';
-                        $('td', row).eq(6).html(nationality);  // Set the nationality in the new column
-                        data[6] = nationality; // Add the nationality to the data array so it can be searchable
-                    }
+                        {
+                            data: null,
+                            render: function (data, type, row) {
+                                return officeToNationality[row[2]] || 'Unknown';
+                            }
+                        } // Render nationality based on the office
+                    ]
                 });
 
                 // Toggle column visibility
                 $('button.toggle-vis').on('click', function (e) {
                     e.preventDefault();
 
-                    // Get the column index
                     var column = table.column($(this).attr('data-column'));
 
-                    // Toggle visibility
                     column.visible(!column.visible());
                 });
 
-                // Row selection functionality (select row on click)
+                // Row selection functionality
                 $(tableId + ' tbody').on('click', 'tr', function () {
                     if ($(this).hasClass('selected')) {
                         $(this).removeClass('selected');
@@ -216,7 +221,7 @@
 
                 // Individual column searching
                 $(tableId + ' tfoot input').on('keyup change', function () {
-                    table.column($(this).parent().index()).search(this.value).draw();
+                    table.draw();  // Trigger table redraw to apply the custom search filter
                 });
             }
 
@@ -225,6 +230,7 @@
             setupDataTable('#example2', '#deleteRow2');
         });
     </script>
+
 </body>
 
 </html>
